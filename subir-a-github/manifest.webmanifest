@@ -1,0 +1,17 @@
+{
+  "name": "Cavalieri Estilo & Moda",
+  "short_name": "Cavalieri",
+  "description": "Catálogo de Cavalieri Estilo & Moda. Compra por WhatsApp.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fdf6f8",
+  "theme_color": "#e7729e",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

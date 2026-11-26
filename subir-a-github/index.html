@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="es-CL">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fdf6f8">
+<title>Cavalieri Estilo &amp; Moda</title>
+<meta name="description" content="Catálogo de Cavalieri Estilo & Moda. Compra por WhatsApp. Entregas en Concepción y envíos a todo Chile.">
+<!-- Vista previa al compartir el enlace (WhatsApp, Instagram) -->
+<meta property="og:title" content="Cavalieri Estilo & Moda">
+<meta property="og:description" content="Mira el catálogo y compra por WhatsApp. Entregas en Concepción y envíos a todo Chile.">
+<meta property="og:image" content="logo.jpg">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="estilos.css">
+</head>
+
+<!-- =====================================================================
+     CATÁLOGO DE CLIENTAS (página pública)
+     Muestra fotos, precios y el botón Comprar por WhatsApp. Nunca muestra costos ni ventas.
+     ===================================================================== -->
+<body class="vista-cliente">
+
+<header class="encabezado">
+  <div class="contenedor">
+    <div class="marca">
+      <div class="marca-avatar con-logo" aria-hidden="true"><img src="logo.jpg" alt=""></div>
+      <div class="marca-texto">
+        <h1 id="nombre-tienda">Cavalieri Estilo &amp; Moda</h1>
+        <p><span class="en-vivo" id="en-vivo">Conectando…</span></p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="contenedor">
+  <section class="perfil">
+    <div class="marca-avatar con-logo" aria-hidden="true"><img src="logo.jpg" alt=""></div>
+    <h2 id="nombre-perfil">Cavalieri Estilo &amp; Moda</h2>
+    <p id="perfil-conteo">Catálogo</p>
+  </section>
+
+  <!-- Entregas y envíos: la clienta elige dónde vive -->
+  <section class="entrega-card" aria-labelledby="entrega-titulo">
+    <div>
+      <h2 id="entrega-titulo">Entregas y envíos</h2>
+      <p class="entrega-info" id="entrega-info"></p>
+    </div>
+    <div class="entrega" id="entrega-top"></div>
+  </section>
+
+  <div class="buscador">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <label for="buscar" class="sr-only">Buscar producto</label>
+    <input id="buscar" type="search" placeholder="Buscar producto…" autocomplete="off">
+    <button type="button" class="btn-icono limpiar" id="btn-limpiar-busqueda" aria-label="Borrar búsqueda" hidden>×</button>
+  </div>
+
+  <nav class="chips" id="chips" aria-label="Filtrar por categoría"></nav>
+
+  <section class="grilla" id="grilla" aria-live="polite">
+    <div class="cargando" aria-label="Cargando catálogo"><div></div><div></div><div></div><div></div></div>
+  </section>
+</main>
+
+<!-- Ficha del producto + Comprar por WhatsApp -->
+<dialog class="ventana ancha" id="dlg-comprar" aria-labelledby="compra-nombre">
+  <div class="cuerpo-flex">
+    <div class="v-cabeza">
+      <span class="t-cat" id="compra-cat"></span>
+      <button type="button" class="btn-icono" data-cerrar aria-label="Cerrar">×</button>
+    </div>
+    <div class="v-cuerpo compra">
+      <div class="compra-foto" id="compra-foto"></div>
+      <div class="compra-info">
+        <h2 id="compra-nombre"></h2>
+        <p class="compra-precio num" id="compra-precio"></p>
+        <p class="compra-desc" id="compra-desc"></p>
+        <p class="compra-agotado" id="compra-agotado" hidden>Este producto está agotado por ahora. Pregunta y te avisamos cuando vuelva.</p>
+        <div class="entrega" id="entrega-compra"></div>
+      </div>
+    </div>
+    <div class="v-pie compra-pie">
+      <p class="compra-ayuda" id="compra-ayuda"></p>
+      <a class="btn btn-comprar" id="btn-comprar" href="#" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 19z"/><path d="M9 9.5c0 3 2.5 5.5 5.5 5.5l1-1.5-2-1-1 .8a4 4 0 0 1-1.8-1.8l.8-1-1-2z" fill="currentColor" stroke="none"/></svg>
+        <span id="btn-comprar-texto">Comprar por WhatsApp</span>
+      </a>
+    </div>
+  </div>
+</dialog>
+
+<div class="aviso" id="aviso" role="status"></div>
+
+<script>window.RAIZ = './';</script>
+<script src="config.js"></script>
+<script src="comun.js"></script>
+<script>
+/* =====================================================================
+   1. DATOS (vienen de la planilla de Google)
+   ===================================================================== */
+const { CIUDAD_LOCAL, PUNTOS_ENTREGA, COURIERS, REGIONES } = window.CONFIG;
+let datos = null;                 // { tienda, whatsapp, categorias, productos }
+let filtroCategoria = 'Todas';
+let textoBusqueda = '';
+
+async function cargar() {
+  try {
+    datos = await llamar('catalogo');
+    lsSet('cav-catalogo', JSON.stringify(datos));   // copia para abrir rápido la próxima vez
+    marcarConexion('on');
+    dibujarTodo();
+  } catch (e) {
+    marcarConexion('off');
+    if (!datos) {
+      $('#grilla').innerHTML = String(e.message) === 'SIN_ENLACE'
+        ? `<div class="vacio"><h3>Catálogo en preparación</h3><p>Vuelve pronto para ver los productos.</p></div>`
+        : `<div class="vacio"><h3>No pudimos cargar el catálogo</h3><p>Revisa tu conexión a internet.</p><button type="button" class="btn btn-suave" data-accion="reintentar">Reintentar</button></div>`;
+    }
+  }
+}
+
+/* =====================================================================
+   2. DIBUJAR
+   ===================================================================== */
+function dibujarTodo() {
+  if (!datos) return;
+  $('#nombre-tienda').textContent = datos.tienda;
+  $('#nombre-perfil').textContent = datos.tienda;
+  document.title = datos.tienda;
+  const disponibles = datos.productos.filter(p => p.disponible).length;
+  $('#perfil-conteo').textContent = `${disponibles} ${disponibles === 1 ? 'producto disponible' : 'productos disponibles'}`;
+  $('#entrega-info').textContent = textoInfoEntregas();
+  $('#entrega-top').innerHTML = htmlEntrega('entrega-top');
+  dibujarChips();
+  dibujarProductos();
+}
+
+function categoriasVisibles() {
+  // Solo categorías que tienen productos
+  return datos.categorias.filter(c => datos.productos.some(p => p.categoria === c));
+}
+
+function dibujarChips() {
+  const cats = ['Todas', ...categoriasVisibles()];
+  if (!cats.includes(filtroCategoria)) filtroCategoria = 'Todas';
+  $('#chips').innerHTML = cats.map(cat => {
+    const n = cat === 'Todas' ? datos.productos.length : datos.productos.filter(p => p.categoria === cat).length;
+    return `<button type="button" class="chip" data-cat="${esc(cat)}" aria-pressed="${cat === filtroCategoria}">${esc(cat)} <small>${n}</small></button>`;
+  }).join('');
+}
+
+function productosFiltrados() {
+  const q = normalizar(textoBusqueda);
+  return datos.productos.filter(p =>
+    (filtroCategoria === 'Todas' || p.categoria === filtroCategoria) &&
+    (!q || normalizar(p.nombre).includes(q) || normalizar(p.descripcion).includes(q)));
+}
+
+function dibujarProductos() {
+  const lista = productosFiltrados();
+  if (!lista.length) {
+    $('#grilla').innerHTML = `<div class="vacio"><h3>No encontramos productos</h3>
+      <p>${textoBusqueda ? `Nada coincide con “${esc(textoBusqueda)}”` : 'No hay productos en esta categoría'}.</p>
+      <button type="button" class="btn btn-suave" data-accion="limpiar">Ver todos los productos</button></div>`;
+    return;
+  }
+  $('#grilla').innerHTML = lista.map(p => `
+    <button type="button" class="tarjeta ${p.disponible ? '' : 'agotado'}" data-accion="ver" data-id="${esc(p.id)}">
+      <span class="t-foto">${htmlFoto(p)}${p.disponible ? '' : '<span class="sello-agotado">Agotado</span>'}</span>
+      <span class="t-info">
+        <span class="t-nombre">${esc(p.nombre)}</span>
+        ${p.descripcion ? `<span class="t-desc">${esc(p.descripcion)}</span>` : ''}
+        <span class="t-precio num">${pesos(p.precio)} <small>CLP</small></span>
+        <span class="t-comprar">${p.disponible ? 'Comprar' : 'Consultar'}</span>
+      </span>
+    </button>`).join('');
+}
+
+/* =====================================================================
+   3. ENTREGAS Y COMPRA POR WHATSAPP
+   ===================================================================== */
+const CLAVE_ENTREGA = 'cav-entrega';   // lo que eligió la clienta (se recuerda en su teléfono)
+let entrega = { zona: '', punto: '', region: '', ciudad: '', courier: '' };
+try { Object.assign(entrega, JSON.parse(lsGet(CLAVE_ENTREGA)) || {}); } catch (e) { /* sin datos */ }
+const entregaAbierta = { 'entrega-top': false, 'entrega-compra': false };
+let productoEnVista = null;
+
+function guardarEntrega() { lsSet(CLAVE_ENTREGA, JSON.stringify(entrega)); }
+
+function textoInfoEntregas() {
+  return `${CIUDAD_LOCAL}: entrega en ${PUNTOS_ENTREGA.map(p => p.nombre).join(' o ')}. Resto de Chile: envío por pagar con ${COURIERS.join(' o ')}.`;
+}
+function entregaCompleta() {
+  if (entrega.zona === 'local') return !!entrega.punto;
+  if (entrega.zona === 'fuera') return !!(entrega.region && entrega.ciudad.trim() && entrega.courier);
+  return false;
+}
+function textoEntrega() {
+  if (entrega.zona === 'local') return `Entrega en ${entrega.punto} (${CIUDAD_LOCAL})`;
+  return `Envío por pagar con ${entrega.courier} a ${entrega.ciudad.trim()} (${entrega.region})`;
+}
+function faltaEntrega() {
+  if (!entrega.zona) return `Elige si vives en ${CIUDAD_LOCAL} o fuera.`;
+  if (entrega.zona === 'local') return 'Elige el mall donde quieres retirar.';
+  if (!entrega.region) return 'Elige tu región.';
+  if (!entrega.ciudad.trim()) return 'Escribe tu ciudad.';
+  return `Elige ${COURIERS.join(' o ')}.`;
+}
+
+function htmlEntrega(id) {
+  const e = entrega;
+  if (entregaCompleta() && !entregaAbierta[id]) {
+    return `<div class="entrega-resumen">
+      <div><span class="entrega-etq">Tu entrega</span><strong>${esc(textoEntrega())}</strong></div>
+      <button type="button" class="btn btn-texto" data-editar-entrega="${id}">Cambiar</button>
+    </div>`;
+  }
+  let html = `
+    <p class="entrega-etq">¿Dónde vives?</p>
+    <div class="seg" role="group" aria-label="¿Dónde vives?">
+      <button type="button" data-zona="local" aria-pressed="${e.zona === 'local'}">En ${esc(CIUDAD_LOCAL)}</button>
+      <button type="button" data-zona="fuera" aria-pressed="${e.zona === 'fuera'}">Fuera de ${esc(CIUDAD_LOCAL)}</button>
+    </div>`;
+  if (e.zona === 'local') {
+    html += `
+    <p class="entrega-nota">Te lo entregamos en persona, sin costo de envío. Elige dónde:</p>
+    <div class="opciones">${PUNTOS_ENTREGA.map((pt, i) => `
+      <button type="button" class="opcion" data-punto="${i}" aria-pressed="${e.punto === pt.nombre}"><strong>${esc(pt.nombre)}</strong><span>${esc(pt.detalle)}</span></button>`).join('')}
+    </div>`;
+  }
+  if (e.zona === 'fuera') {
+    html += `
+    <div class="fila-2">
+      <label class="campo" for="${id}-region"><span>Región</span>
+        <select id="${id}-region" data-campo="region">
+          <option value="">Elige tu región…</option>
+          ${REGIONES.map(r => `<option value="${esc(r)}" ${r === e.region ? 'selected' : ''}>${esc(r)}</option>`).join('')}
+        </select>
+      </label>
+      <label class="campo" for="${id}-ciudad"><span>Ciudad</span>
+        <input id="${id}-ciudad" data-campo="ciudad" type="text" maxlength="40" value="${esc(e.ciudad)}" placeholder="Ej: Temuco" autocomplete="address-level2">
+      </label>
+    </div>
+    <p class="entrega-nota">Envío <strong>por pagar</strong>: pagas el envío cuando lo retiras. Elige la empresa:</p>
+    <div class="opciones">${COURIERS.map((c, i) => `
+      <button type="button" class="opcion" data-courier="${i}" aria-pressed="${e.courier === c}"><strong>${esc(c)}</strong><span>Envío por pagar</span></button>`).join('')}
+    </div>`;
+  }
+  return html;
+}
+
+function refrescarEntrega() {
+  $('#entrega-top').innerHTML = htmlEntrega('entrega-top');
+  if ($('#dlg-comprar').open) {
+    $('#entrega-compra').innerHTML = productoEnVista && productoEnVista.disponible ? htmlEntrega('entrega-compra') : '';
+    actualizarBotonCompra();
+  }
+}
+function cerrarEntregaSiCompleta() {
+  if (entregaCompleta()) Object.keys(entregaAbierta).forEach(k => { entregaAbierta[k] = false; });
+}
+
+function linkWhatsApp(p) {
+  const lineas = p.disponible
+    ? ['¡Hola! Quiero comprar:', `• ${p.nombre} - ${pesos(p.precio)}`, '', textoEntrega(), '', '¿Está disponible?']
+    : ['¡Hola! Vi este producto en el catálogo y está agotado:', `• ${p.nombre} - ${pesos(p.precio)}`, '', '¿Saben cuándo vuelve?'];
+  return `https://wa.me/${(datos && datos.whatsapp) || ''}?text=${encodeURIComponent(lineas.join('\n'))}`;
+}
+
+function actualizarBotonCompra() {
+  const p = productoEnVista;
+  if (!p) return;
+  const listo = !p.disponible || entregaCompleta();
+  const boton = $('#btn-comprar');
+  boton.href = listo ? linkWhatsApp(p) : '#';
+  boton.setAttribute('aria-disabled', String(!listo));
+  $('#btn-comprar-texto').textContent = p.disponible ? 'Comprar por WhatsApp' : 'Preguntar cuándo vuelve';
+  $('#compra-ayuda').textContent = listo ? 'Se abrirá WhatsApp con tu pedido listo para enviar.' : faltaEntrega();
+}
+
+function abrirCompra(id) {
+  const p = datos.productos.find(x => x.id === id);
+  if (!p) return;
+  productoEnVista = p;
+  $('#compra-cat').textContent = p.categoria || '';
+  $('#compra-foto').innerHTML = htmlFoto(p);
+  $('#compra-nombre').textContent = p.nombre;
+  $('#compra-precio').innerHTML = `${pesos(p.precio)} <small>CLP</small>`;
+  $('#compra-desc').textContent = p.descripcion || '';
+  $('#compra-desc').hidden = !p.descripcion;
+  $('#compra-agotado').hidden = p.disponible;
+  entregaAbierta['entrega-compra'] = false;
+  $('#dlg-comprar').showModal();
+  refrescarEntrega();
+}
+
+/* =====================================================================
+   4. EVENTOS
+   ===================================================================== */
+document.addEventListener('click', e => {
+  const zona = e.target.closest('[data-zona]');
+  if (zona) { entrega.zona = zona.dataset.zona; guardarEntrega(); refrescarEntrega(); return; }
+  const punto = e.target.closest('[data-punto]');
+  if (punto) { entrega.punto = PUNTOS_ENTREGA[punto.dataset.punto].nombre; guardarEntrega(); cerrarEntregaSiCompleta(); refrescarEntrega(); return; }
+  const courier = e.target.closest('[data-courier]');
+  if (courier) { entrega.courier = COURIERS[courier.dataset.courier]; guardarEntrega(); cerrarEntregaSiCompleta(); refrescarEntrega(); return; }
+  const editar = e.target.closest('[data-editar-entrega]');
+  if (editar) { entregaAbierta[editar.dataset.editarEntrega] = true; refrescarEntrega(); }
+});
+document.addEventListener('change', e => {
+  const campo = e.target.dataset && e.target.dataset.campo;
+  if (!campo) return;
+  entrega[campo] = e.target.value;
+  guardarEntrega();
+  if (campo === 'ciudad' && normalizar(entrega.ciudad) === normalizar(CIUDAD_LOCAL)) {
+    entrega.zona = 'local';
+    guardarEntrega();
+    refrescarEntrega();
+    mostrarAviso(`¡Estás en ${CIUDAD_LOCAL}! Puedes retirar en el mall.`);
+    return;
+  }
+  actualizarBotonCompra();
+});
+document.addEventListener('input', e => {
+  if (e.target.dataset && e.target.dataset.campo === 'ciudad') {
+    entrega.ciudad = e.target.value;
+    guardarEntrega();
+    actualizarBotonCompra();
+  }
+});
+$('#btn-comprar').addEventListener('click', e => {
+  if ($('#btn-comprar').getAttribute('aria-disabled') === 'true') {
+    e.preventDefault();
+    entregaAbierta['entrega-compra'] = true;
+    refrescarEntrega();
+    mostrarAviso(faltaEntrega(), true);
+    $('#entrega-compra').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+});
+
+$('#buscar').addEventListener('input', e => {
+  textoBusqueda = e.target.value;
+  $('#btn-limpiar-busqueda').hidden = !textoBusqueda;
+  if (datos) dibujarProductos();
+});
+$('#btn-limpiar-busqueda').addEventListener('click', () => {
+  textoBusqueda = ''; $('#buscar').value = ''; $('#btn-limpiar-busqueda').hidden = true;
+  if (datos) dibujarProductos();
+});
+$('#chips').addEventListener('click', e => {
+  const chip = e.target.closest('[data-cat]');
+  if (!chip) return;
+  filtroCategoria = chip.dataset.cat;
+  dibujarChips(); dibujarProductos();
+});
+$('#grilla').addEventListener('click', e => {
+  const b = e.target.closest('[data-accion]');
+  if (!b) return;
+  if (b.dataset.accion === 'ver') abrirCompra(b.dataset.id);
+  if (b.dataset.accion === 'reintentar') cargar();
+  if (b.dataset.accion === 'limpiar') {
+    textoBusqueda = ''; $('#buscar').value = ''; $('#btn-limpiar-busqueda').hidden = true;
+    filtroCategoria = 'Todas'; dibujarChips(); dibujarProductos();
+  }
+});
+document.querySelectorAll('dialog.ventana').forEach(dlg => dlg.addEventListener('click', e => {
+  if (e.target.closest('[data-cerrar]') || e.target === dlg) dlg.close();
+}));
+
+/* =====================================================================
+   5. INICIO: muestra la última copia al tiro y luego trae los datos en vivo
+   ===================================================================== */
+try { const copia = JSON.parse(lsGet('cav-catalogo')); if (copia && copia.productos) { datos = copia; dibujarTodo(); } } catch (e) { /* sin copia */ }
+$('#entrega-info').textContent = textoInfoEntregas();
+$('#entrega-top').innerHTML = htmlEntrega('entrega-top');
+cargar();
+setInterval(() => { if (document.visibilityState === 'visible' && !$('#dlg-comprar').open) cargar(); }, 60000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') cargar(); });
+</script>
+</body>
+</html>

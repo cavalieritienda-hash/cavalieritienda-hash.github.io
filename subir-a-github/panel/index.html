@@ -1,0 +1,727 @@
+<!doctype html>
+<html lang="es-CL">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fdf6f8">
+<meta name="robots" content="noindex">
+<title>Panel · Cavalieri</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="../icon-192.png">
+<link rel="apple-touch-icon" href="../icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../estilos.css">
+</head>
+
+<!-- =====================================================================
+     PANEL DE LA DUEÑA (con clave)
+     Productos, costos, ganancias, ventas. Todo se guarda en la planilla de Google.
+     ===================================================================== -->
+<body class="vista-duena">
+
+<header class="encabezado">
+  <div class="contenedor">
+    <div class="marca">
+      <div class="marca-avatar con-logo" aria-hidden="true"><img src="../logo.jpg" alt=""></div>
+      <div class="marca-texto">
+        <h1 id="nombre-tienda">Cavalieri Estilo &amp; Moda</h1>
+        <p><span class="en-vivo" id="en-vivo">Conectando…</span></p>
+      </div>
+    </div>
+    <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+      <a class="enlace-encabezado" href="../" target="_blank" rel="noopener">Ver catálogo de clientas</a>
+      <button type="button" class="enlace-encabezado" id="btn-datos">Nombre y WhatsApp</button>
+      <button type="button" class="enlace-encabezado" id="btn-salir">Salir</button>
+    </div>
+  </div>
+</header>
+
+<main class="contenedor">
+  <div class="banner-wsp" id="banner-wsp" hidden>
+    <div>
+      <strong>Agrega tu WhatsApp</strong>
+      <span>Así los pedidos de tus clientas te llegan directo.</span>
+    </div>
+    <button type="button" class="btn btn-principal" data-abrir-datos>Agregar WhatsApp</button>
+  </div>
+
+  <section class="metricas" id="metricas" aria-label="Resumen"></section>
+  <ul class="leyenda" aria-label="Qué significan los colores">
+    <li><span class="punto bueno"></span>Buena ganancia (30% o más)</li>
+    <li><span class="punto bajo"></span>Ganancia baja (menos de 30%)</li>
+    <li><span class="punto malo"></span>Pierdes plata</li>
+  </ul>
+
+  <div class="acciones">
+    <button type="button" class="btn btn-principal" id="btn-agregar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Agregar producto
+    </button>
+    <button type="button" class="btn btn-secundario" id="btn-exportar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+      Exportar a Excel
+    </button>
+    <a class="btn btn-secundario" id="btn-planilla" href="#" target="_blank" rel="noopener" hidden>Abrir planilla</a>
+  </div>
+
+  <div class="buscador">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <label for="buscar" class="sr-only">Buscar producto</label>
+    <input id="buscar" type="search" placeholder="Buscar producto…" autocomplete="off">
+    <button type="button" class="btn-icono limpiar" id="btn-limpiar-busqueda" aria-label="Borrar búsqueda" hidden>×</button>
+  </div>
+
+  <nav class="chips" id="chips" aria-label="Filtrar por categoría"></nav>
+
+  <section class="grilla" id="grilla" aria-live="polite">
+    <div class="cargando" aria-label="Cargando"><div></div><div></div><div></div></div>
+  </section>
+
+  <footer class="pie">
+    <span>Todo se guarda en tu planilla de Google. Lo que cambies aquí lo ven tus clientas en el catálogo.</span>
+  </footer>
+</main>
+
+<!-- ===================== Pantalla de clave ===================== -->
+<div class="bloqueo" id="bloqueo" hidden>
+  <form class="bloqueo-caja" id="form-clave" novalidate>
+    <div class="marca-avatar con-logo" aria-hidden="true"><img src="../logo.jpg" alt=""></div>
+    <h1>Panel de la tienda</h1>
+    <p>Escribe tu clave para entrar.</p>
+    <label class="campo"><span>Clave</span><input id="input-clave" type="password" autocomplete="current-password"></label>
+    <p class="error" id="clave-error" hidden></p>
+    <button type="submit" class="btn btn-principal" id="btn-entrar">Entrar</button>
+  </form>
+</div>
+
+<!-- ===================== Pantalla de conexión (solo si falta el enlace en config.js) ===================== -->
+<div class="bloqueo" id="conexion" hidden>
+  <form class="bloqueo-caja" id="form-conexion" novalidate>
+    <h1>Conectar con Google</h1>
+    <p>Pega el enlace de tu planilla (el de "Aplicación web", termina en <strong>/exec</strong>).</p>
+    <label class="campo"><span>Enlace de Google</span><input id="input-api" type="url" placeholder="https://script.google.com/macros/s/…/exec"></label>
+    <p class="error" id="conexion-error" hidden></p>
+    <button type="submit" class="btn btn-principal">Conectar</button>
+  </form>
+</div>
+
+<!-- ===================== Agregar / editar producto ===================== -->
+<dialog class="ventana" id="dlg-producto" aria-labelledby="dlg-producto-titulo">
+  <form id="form-producto" novalidate>
+    <div class="v-cabeza">
+      <h2 id="dlg-producto-titulo">Agregar producto</h2>
+      <button type="button" class="btn-icono" data-cerrar aria-label="Cerrar">×</button>
+    </div>
+    <div class="v-cuerpo">
+      <div class="foto-editor">
+        <div class="foto-previa" id="foto-previa"></div>
+        <div class="foto-botones">
+          <label class="btn btn-suave" for="f-archivo">Subir foto</label>
+          <input type="file" id="f-archivo" accept="image/*" class="sr-only">
+          <label class="campo">
+            <span>…o pega el enlace de una foto</span>
+            <input id="f-url" type="url" inputmode="url" placeholder="https://…">
+          </label>
+          <button type="button" class="btn btn-texto" id="btn-quitar-foto" style="justify-self:start;min-height:36px">Quitar foto</button>
+        </div>
+      </div>
+      <label class="campo"><span>Nombre del producto</span><input id="f-nombre" type="text" maxlength="60" placeholder="Ej: Top halter rosado" autocomplete="off"></label>
+      <label class="campo"><span>Categoría</span><select id="f-categoria"></select></label>
+      <label class="campo" id="campo-nueva-cat" hidden><span>Nombre de la nueva categoría</span><input id="f-nueva-cat" type="text" maxlength="30" placeholder="Ej: Faldas"></label>
+      <label class="campo"><span>Descripción corta <em>(opcional)</em></span><textarea id="f-descripcion" rows="2" maxlength="140" placeholder="Ej: Talla única, tela elasticada"></textarea></label>
+      <div class="fila-2">
+        <label class="campo"><span>Lo que te costó</span><div class="peso"><input id="f-costo" type="text" inputmode="numeric" placeholder="0" autocomplete="off"></div></label>
+        <label class="campo"><span>Precio de venta</span><div class="peso"><input id="f-precio" type="text" inputmode="numeric" placeholder="0" autocomplete="off"></div></label>
+      </div>
+      <div class="calculo neutro" id="calculo" aria-live="polite"></div>
+      <label class="check"><input type="checkbox" id="f-disponible" checked> Disponible para la venta</label>
+      <p class="error" id="f-error" hidden></p>
+    </div>
+    <div class="v-pie">
+      <button type="button" class="btn btn-peligro-texto" id="btn-eliminar">Eliminar</button>
+      <button type="submit" class="btn btn-principal" id="btn-guardar">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ===================== Categorías ===================== -->
+<dialog class="ventana chica" id="dlg-categorias" aria-labelledby="dlg-cat-titulo">
+  <div class="cuerpo-flex">
+    <div class="v-cabeza"><h2 id="dlg-cat-titulo">Categorías</h2><button type="button" class="btn-icono" data-cerrar aria-label="Cerrar">×</button></div>
+    <div class="v-cuerpo">
+      <p class="texto-ayuda">Toca un nombre para cambiarlo. Los cambios se guardan solos.</p>
+      <ul class="lista-cat" id="lista-cat"></ul>
+      <form class="nueva-cat" id="form-nueva-cat">
+        <label for="input-nueva-cat" class="sr-only">Nueva categoría</label>
+        <input id="input-nueva-cat" type="text" maxlength="30" placeholder="Nueva categoría…">
+        <button type="submit" class="btn btn-suave">Agregar</button>
+      </form>
+    </div>
+    <div class="v-pie"><button type="button" class="btn btn-principal" data-cerrar>Listo</button></div>
+  </div>
+</dialog>
+
+<!-- ===================== Nombre y WhatsApp ===================== -->
+<dialog class="ventana chica" id="dlg-datos" aria-labelledby="dlg-datos-titulo">
+  <form id="form-datos" novalidate>
+    <div class="v-cabeza"><h2 id="dlg-datos-titulo">Datos de tu tienda</h2><button type="button" class="btn-icono" data-cerrar aria-label="Cerrar">×</button></div>
+    <div class="v-cuerpo">
+      <label class="campo"><span>Nombre de la tienda</span><input id="input-nombre" type="text" maxlength="40"></label>
+      <label class="campo"><span>Tu WhatsApp para recibir pedidos</span><div class="peso tel"><input id="input-wsp" type="tel" inputmode="tel" placeholder="9 1234 5678" autocomplete="tel-national"></div></label>
+      <p class="texto-ayuda">Cuando una clienta toque "Comprar", se abrirá WhatsApp con el pedido listo para enviarte a este número.</p>
+      <p class="error" id="datos-error" hidden></p>
+    </div>
+    <div class="v-pie"><button type="submit" class="btn btn-principal">Guardar</button></div>
+  </form>
+</dialog>
+
+<!-- ===================== Confirmar ===================== -->
+<dialog class="ventana chica" id="dlg-confirmar" aria-labelledby="conf-titulo">
+  <div class="cuerpo-flex">
+    <div class="v-cabeza"><h2 id="conf-titulo">¿Seguro?</h2></div>
+    <div class="v-cuerpo"><p class="texto-ayuda" id="conf-texto"></p></div>
+    <div class="v-pie">
+      <button type="button" class="btn btn-texto" id="conf-no">Cancelar</button>
+      <button type="button" class="btn btn-peligro" id="conf-si">Sí, eliminar</button>
+    </div>
+  </div>
+</dialog>
+
+<div class="aviso" id="aviso" role="status"></div>
+
+<script>window.RAIZ = '../';</script>
+<script src="../config.js"></script>
+<script src="../comun.js"></script>
+<script>
+/* =====================================================================
+   1. ESTADO Y CONEXIÓN
+   ===================================================================== */
+const TAMANO_FOTO = 900;           // las fotos subidas se achican a este tamaño (px)
+let clave = lsGet('cav-clave') || '';
+let datos = null;                  // { tienda, whatsapp, categorias, productos, planilla }
+let filtroCategoria = 'Todas';
+let textoBusqueda = '';
+let editandoId = null;
+let fotoTemporal = '';             // foto del formulario: enlace, o imagen nueva (data:)
+let pendientes = 0;                // cambios enviados que aún no responde Google
+
+// Llama al servidor con la clave. Si la clave no sirve, pide entrar de nuevo.
+async function servidor(accion, data) {
+  try {
+    return await llamar(accion, data, clave);
+  } catch (e) {
+    const m = String(e.message);
+    if (m === 'CLAVE') { pedirClave(); throw new Error('Tu clave no es válida. Entra de nuevo.'); }
+    if (m === 'SIN_ENLACE') { pedirConexion(); throw new Error('Falta conectar con Google.'); }
+    if (m === 'SIN_RED') throw new Error('Sin conexión a internet. Inténtalo de nuevo.');
+    if (m === 'RESPUESTA') throw new Error('Google no respondió bien. Revisa que el enlace /exec sea el correcto.');
+    throw e;
+  }
+}
+
+// Envía un cambio y aplica la respuesta (si no hay otros cambios en camino)
+async function cambiar(accion, data, mensajeOk) {
+  pendientes++;
+  try {
+    const nuevos = await servidor(accion, data);
+    pendientes--;
+    if (pendientes === 0) { datos = nuevos; dibujarTodo(); }
+    marcarConexion('on');
+    if (mensajeOk) mostrarAviso(mensajeOk);
+    return true;
+  } catch (e) {
+    pendientes--;
+    mostrarAviso(e.message, true);
+    refrescar();   // vuelve a lo que de verdad está guardado
+    return false;
+  }
+}
+
+async function refrescar() {
+  if (pendientes > 0 || !clave) return;
+  try {
+    datos = await servidor('panel');
+    marcarConexion('on');
+    dibujarTodo();
+  } catch (e) {
+    marcarConexion('off');
+  }
+}
+
+/* ---------- Clave ---------- */
+function pedirClave() {
+  clave = ''; lsSet('cav-clave', '');
+  $('#bloqueo').hidden = false;
+  setTimeout(() => $('#input-clave').focus(), 50);
+}
+$('#form-clave').addEventListener('submit', async e => {
+  e.preventDefault();
+  const intento = $('#input-clave').value.trim().toUpperCase();
+  const err = $('#clave-error'), btn = $('#btn-entrar');
+  err.hidden = true;
+  if (!intento) return;
+  btn.disabled = true; btn.textContent = 'Entrando…';
+  try {
+    datos = await llamar('panel', null, intento);
+    clave = intento; lsSet('cav-clave', clave);
+    $('#bloqueo').hidden = true; $('#input-clave').value = '';
+    marcarConexion('on'); dibujarTodo();
+  } catch (e2) {
+    const m = String(e2.message);
+    err.textContent = m === 'CLAVE' ? 'Clave incorrecta.' : m === 'SIN_ENLACE' ? 'Falta conectar con Google.' : 'No hay conexión con Google. Inténtalo de nuevo.';
+    err.hidden = false;
+    if (m === 'SIN_ENLACE') pedirConexion();
+  } finally { btn.disabled = false; btn.textContent = 'Entrar'; }
+});
+$('#btn-salir').addEventListener('click', pedirClave);
+
+/* ---------- Enlace de Google (solo si no está en config.js) ---------- */
+function pedirConexion() { $('#conexion').hidden = false; }
+$('#form-conexion').addEventListener('submit', e => {
+  e.preventDefault();
+  const v = $('#input-api').value.trim();
+  if (!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(v)) {
+    $('#conexion-error').textContent = 'Pega el enlace completo: empieza con https://script.google.com/macros/s/ y termina en /exec.';
+    $('#conexion-error').hidden = false; return;
+  }
+  lsSet('cav-api', v);
+  $('#conexion').hidden = true;
+  if (!clave) pedirClave(); else refrescar();
+});
+
+/* =====================================================================
+   2. DIBUJAR
+   ===================================================================== */
+function dibujarTodo() {
+  if (!datos) return;
+  $('#nombre-tienda').textContent = datos.tienda;
+  $('#banner-wsp').hidden = !!datos.whatsapp;
+  if (datos.planilla) { $('#btn-planilla').href = datos.planilla; $('#btn-planilla').hidden = false; }
+  dibujarMetricas();
+  dibujarChips();
+  dibujarProductos();
+}
+
+function dibujarMetricas() {
+  const lista = datos.productos, total = lista.length;
+  const agotados = lista.filter(p => !p.disponible).length;
+  let html = `
+    <div class="metrica">
+      <div class="metrica-etiqueta">Productos</div>
+      <div class="metrica-valor num">${total}</div>
+      <div class="metrica-sub">${total - agotados} disponibles · ${agotados} agotados</div>
+    </div>`;
+  if (!total) {
+    html += `<div class="metrica"><div class="metrica-etiqueta">Ganancia promedio</div><div class="metrica-valor">—</div></div>
+      <div class="metrica metrica-destacada metrica-ancha"><div class="metrica-etiqueta">Más vendido</div><div class="metrica-valor chico">—</div></div>
+      <div class="metrica metrica-ancha"><div class="metrica-etiqueta">Mayor ganancia</div><div class="metrica-valor chico">—</div></div>`;
+    $('#metricas').innerHTML = html; return;
+  }
+  const calculos = lista.map(p => ({ p, ...calcularGanancia(p) }));
+  const promGanancia = calculos.reduce((s, c) => s + c.ganancia, 0) / total;
+  const promMargen = calculos.reduce((s, c) => s + c.margen, 0) / total;
+  const mejor = calculos.reduce((a, b) => (b.ganancia > a.ganancia ? b : a));
+  const masVendido = lista.reduce((a, b) => ((b.vendidos || 0) > (a.vendidos || 0) ? b : a));
+  const n = masVendido.vendidos || 0;
+  html += `
+    <div class="metrica">
+      <div class="metrica-etiqueta">Ganancia promedio</div>
+      <div class="metrica-valor num">${pesos(promGanancia)}</div>
+      <div class="metrica-sub">por producto · margen ${porcentaje(promMargen)}</div>
+    </div>
+    <div class="metrica metrica-destacada metrica-ancha">
+      <div class="metrica-etiqueta">Más vendido</div>
+      ${n > 0
+        ? `<div class="metrica-valor chico">${esc(masVendido.nombre)}</div>
+           <div class="metrica-sub num">${n} ${n === 1 ? 'vendido' : 'vendidos'} · ganaste ${pesos(calcularGanancia(masVendido).ganancia * n)}</div>`
+        : `<div class="metrica-valor chico">Aún sin ventas</div>
+           <div class="metrica-sub">Cada vez que vendas algo, toca el + del producto.</div>`}
+    </div>
+    <div class="metrica metrica-ancha">
+      <div class="metrica-etiqueta">Mayor ganancia</div>
+      <div class="metrica-valor chico">${esc(mejor.p.nombre)}</div>
+      <div class="metrica-sub num">${pesosConSigno(mejor.ganancia)} por unidad · ${porcentaje(mejor.margen)}</div>
+    </div>`;
+  $('#metricas').innerHTML = html;
+}
+
+function sinCategoria(p) { return !p.categoria || !datos.categorias.includes(p.categoria); }
+
+function dibujarChips() {
+  const cats = ['Todas', ...datos.categorias];
+  if (datos.productos.some(sinCategoria)) cats.push('Sin categoría');
+  if (!cats.includes(filtroCategoria)) filtroCategoria = 'Todas';
+  $('#chips').innerHTML = cats.map(cat => {
+    const n = cat === 'Todas' ? datos.productos.length
+      : cat === 'Sin categoría' ? datos.productos.filter(sinCategoria).length
+      : datos.productos.filter(p => p.categoria === cat).length;
+    return `<button type="button" class="chip" data-cat="${esc(cat)}" aria-pressed="${cat === filtroCategoria}">${esc(cat)} <small>${n}</small></button>`;
+  }).join('') + `<button type="button" class="chip chip-editar" id="btn-editar-cat">＋ Editar categorías</button>`;
+}
+
+function productosFiltrados() {
+  const q = normalizar(textoBusqueda);
+  return datos.productos.filter(p => {
+    const okCat = filtroCategoria === 'Todas' || (filtroCategoria === 'Sin categoría' ? sinCategoria(p) : p.categoria === filtroCategoria);
+    return okCat && (!q || normalizar(p.nombre).includes(q) || normalizar(p.descripcion).includes(q));
+  });
+}
+
+function dibujarProductos() {
+  const lista = productosFiltrados();
+  if (!lista.length) {
+    $('#grilla').innerHTML = datos.productos.length
+      ? `<div class="vacio"><h3>No encontramos productos</h3><p>${textoBusqueda ? `Nada coincide con “${esc(textoBusqueda)}”` : 'No hay productos en esta categoría'}.</p>
+         <button type="button" class="btn btn-suave" data-accion="limpiar">Ver todos los productos</button></div>`
+      : `<div class="vacio"><h3>Aún no tienes productos</h3><p>Agrega el primero y verás su ganancia al tiro.</p>
+         <button type="button" class="btn btn-principal" data-accion="agregar">Agregar producto</button></div>`;
+    return;
+  }
+  $('#grilla').innerHTML = lista.map(tarjeta).join('');
+}
+
+function tarjeta(p) {
+  const { ganancia, margen } = calcularGanancia(p);
+  const nivel = nivelGanancia(ganancia, margen);
+  const id = esc(p.id);
+  return `
+  <article class="tarjeta ${p.disponible ? '' : 'agotado'}">
+    <div class="t-foto">${htmlFoto(p)}${p.disponible ? '' : '<span class="sello-agotado">Agotado</span>'}</div>
+    <div class="t-info">
+      <span class="t-cat">${esc(p.categoria || 'Sin categoría')}</span>
+      <h3 class="t-nombre">${esc(p.nombre)}</h3>
+      <p class="t-precio num">${pesos(p.precio)} <small>CLP</small></p>
+    </div>
+    <div class="t-fin ${nivel}">
+      <div class="t-fin-titulo"><span class="punto ${nivel}"></span>${TEXTO_NIVEL[nivel]}</div>
+      <dl>
+        <div><dt>Costo</dt><dd class="num">${pesos(p.costo)}</dd></div>
+        <div><dt>Ganancia</dt><dd class="num color">${pesosConSigno(ganancia)}</dd></div>
+        <div><dt>Margen</dt><dd class="num color">${porcentaje(margen)}</dd></div>
+      </dl>
+    </div>
+    <div class="t-ventas">
+      <span>Vendidos</span>
+      <div class="contador">
+        <button type="button" class="btn-icono" data-accion="menos" data-id="${id}" aria-label="Restar una venta de ${esc(p.nombre)}">−</button>
+        <strong class="num">${p.vendidos || 0}</strong>
+        <button type="button" class="btn-icono mas" data-accion="mas" data-id="${id}" aria-label="Anotar una venta de ${esc(p.nombre)}">+</button>
+      </div>
+    </div>
+    <div class="t-acc">
+      <button type="button" class="estado" role="switch" aria-checked="${p.disponible}" data-accion="estado" data-id="${id}">
+        <span class="riel"></span>${p.disponible ? 'Disponible' : 'Agotado'}
+      </button>
+      <button type="button" class="btn btn-suave" data-accion="editar" data-id="${id}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="m13.5 6.5 4 4"/></svg>
+        Editar
+      </button>
+    </div>
+  </article>`;
+}
+
+/* =====================================================================
+   3. VENTAS Y DISPONIBLE / AGOTADO (se ve el cambio al tiro y se guarda)
+   ===================================================================== */
+function vender(id, cambio) {
+  const p = datos.productos.find(x => x.id === id);
+  if (!p || (cambio < 0 && !p.vendidos)) return;
+  p.vendidos = (p.vendidos || 0) + cambio;
+  dibujarTodo();
+  cambiar('vender', { id, cambio }, cambio > 0 ? `Venta anotada: ${p.nombre} (${p.vendidos})` : `Venta quitada: ${p.nombre} (${p.vendidos})`);
+}
+function cambiarEstado(id) {
+  const p = datos.productos.find(x => x.id === id);
+  if (!p) return;
+  p.disponible = !p.disponible;
+  dibujarTodo();
+  cambiar('estado', { id, disponible: p.disponible }, p.disponible ? `${p.nombre}: disponible` : `${p.nombre}: agotado`);
+}
+
+/* =====================================================================
+   4. AGREGAR / EDITAR / ELIMINAR PRODUCTO
+   ===================================================================== */
+function abrirFormulario(id = null) {
+  editandoId = id;
+  const p = id ? datos.productos.find(x => x.id === id) : null;
+  $('#dlg-producto-titulo').textContent = p ? 'Editar producto' : 'Agregar producto';
+  $('#btn-eliminar').hidden = !p;
+  $('#f-error').hidden = true;
+  $('#f-categoria').innerHTML = `<option value="">Sin categoría</option>${datos.categorias.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('')}<option value="__nueva__">＋ Crear nueva categoría…</option>`;
+  $('#f-nombre').value = p ? p.nombre : '';
+  const catInicial = p ? p.categoria : (datos.categorias.includes(filtroCategoria) ? filtroCategoria : (datos.categorias[0] || ''));
+  $('#f-categoria').value = datos.categorias.includes(catInicial) ? catInicial : '';
+  $('#campo-nueva-cat').hidden = true; $('#f-nueva-cat').value = '';
+  $('#f-descripcion').value = p ? (p.descripcion || '') : '';
+  $('#f-costo').value = p && p.costo ? formatoCLP.format(p.costo) : '';
+  $('#f-precio').value = p && p.precio ? formatoCLP.format(p.precio) : '';
+  $('#f-disponible').checked = p ? p.disponible : true;
+  fotoTemporal = p ? (p.foto || '') : '';
+  $('#f-url').value = /^https?:/.test(fotoTemporal) ? fotoTemporal : '';
+  $('#f-archivo').value = '';
+  dibujarFotoPrevia(); actualizarCalculo();
+  $('#dlg-producto').showModal();
+  if (!p) setTimeout(() => $('#f-nombre').focus(), 50);
+}
+
+function dibujarFotoPrevia() {
+  $('#foto-previa').innerHTML = fotoTemporal ? `<img src="${esc(fotoURL(fotoTemporal))}" alt="Foto del producto">` : `<div class="sin-foto">Sin foto</div>`;
+  $('#btn-quitar-foto').hidden = !fotoTemporal;
+}
+
+function actualizarCalculo() {
+  const costo = leerNumero($('#f-costo').value), precio = leerNumero($('#f-precio').value);
+  const caja = $('#calculo');
+  if (!precio) {
+    caja.className = 'calculo neutro';
+    caja.innerHTML = `<p style="margin:0;color:var(--tinta-suave)">Escribe el costo y el precio de venta para ver cuánto ganas.</p>`;
+    return;
+  }
+  const { ganancia, margen } = calcularGanancia({ costo, precio });
+  const nivel = nivelGanancia(ganancia, margen);
+  caja.className = 'calculo ' + nivel;
+  caja.innerHTML = `
+    <div><span>Ganas por cada uno</span><strong class="num">${pesosConSigno(ganancia)}</strong></div>
+    <div><span>Margen</span><strong class="num">${porcentaje(margen)}</strong></div>
+    <p>${TEXTO_NIVEL[nivel]}${nivel === 'malo' ? ': el precio de venta es menor que el costo.' : ''}</p>`;
+}
+function formatearMientrasEscribe(e) {
+  const n = leerNumero(e.target.value);
+  e.target.value = n ? formatoCLP.format(n) : '';
+  actualizarCalculo();
+}
+
+// Achica la foto para que suba rápido
+function reducirImagen(archivo) {
+  return new Promise((resolver, rechazar) => {
+    const lector = new FileReader();
+    lector.onerror = rechazar;
+    lector.onload = () => {
+      const img = new Image();
+      img.onerror = rechazar;
+      img.onload = () => {
+        const escala = Math.min(1, TAMANO_FOTO / Math.max(img.width, img.height));
+        const lienzo = document.createElement('canvas');
+        lienzo.width = Math.round(img.width * escala); lienzo.height = Math.round(img.height * escala);
+        const ctx = lienzo.getContext('2d');
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, lienzo.width, lienzo.height);
+        ctx.drawImage(img, 0, 0, lienzo.width, lienzo.height);
+        resolver(lienzo.toDataURL('image/jpeg', 0.82));
+      };
+      img.src = lector.result;
+    };
+    lector.readAsDataURL(archivo);
+  });
+}
+
+async function guardarProducto(e) {
+  e.preventDefault();
+  const error = $('#f-error');
+  const mostrarError = (t, campo) => { error.textContent = t; error.hidden = false; if (campo) $(campo).focus(); };
+  const nombre = $('#f-nombre').value.trim();
+  const precio = leerNumero($('#f-precio').value);
+  let categoria = $('#f-categoria').value;
+  if (!nombre) return mostrarError('Escribe el nombre del producto.', '#f-nombre');
+  if (!precio) return mostrarError('Escribe el precio de venta.', '#f-precio');
+  if (categoria === '__nueva__') {
+    categoria = $('#f-nueva-cat').value.trim();
+    if (!categoria) return mostrarError('Escribe el nombre de la nueva categoría.', '#f-nueva-cat');
+    categoria = datos.categorias.find(c => normalizar(c) === normalizar(categoria)) || categoria;
+  }
+  const esFotoNueva = fotoTemporal.startsWith('data:');
+  const producto = {
+    id: editandoId, nombre, categoria, precio,
+    costo: leerNumero($('#f-costo').value),
+    descripcion: $('#f-descripcion').value.trim(),
+    disponible: $('#f-disponible').checked,
+    foto: esFotoNueva ? '' : fotoTemporal,
+    fotoNueva: esFotoNueva ? fotoTemporal : '',
+  };
+  const btn = $('#btn-guardar');
+  btn.disabled = true; btn.textContent = esFotoNueva ? 'Subiendo foto…' : 'Guardando…';
+  const ok = await cambiar('guardarProducto', producto, editandoId ? 'Cambios guardados ✓' : 'Producto agregado ✓');
+  btn.disabled = false; btn.textContent = 'Guardar';
+  if (ok) $('#dlg-producto').close();
+  else error.hidden = true;
+}
+
+function pedirConfirmacion({ titulo, texto, boton = 'Sí, eliminar' }) {
+  return new Promise(resolver => {
+    const dlg = $('#dlg-confirmar');
+    $('#conf-titulo').textContent = titulo; $('#conf-texto').textContent = texto; $('#conf-si').textContent = boton;
+    const terminar = r => { dlg.close(); resolver(r); };
+    $('#conf-si').onclick = () => terminar(true);
+    $('#conf-no').onclick = () => terminar(false);
+    dlg.oncancel = ev => { ev.preventDefault(); terminar(false); };
+    dlg.showModal();
+  });
+}
+
+async function eliminarProducto() {
+  const p = datos.productos.find(x => x.id === editandoId);
+  if (!p) return;
+  const ok = await pedirConfirmacion({ titulo: '¿Eliminar este producto?', texto: `“${p.nombre}” se borrará del catálogo. Esto no se puede deshacer.` });
+  if (!ok) return;
+  $('#dlg-producto').close();
+  datos.productos = datos.productos.filter(x => x.id !== p.id);
+  dibujarTodo();
+  cambiar('eliminarProducto', { id: p.id }, 'Producto eliminado');
+}
+
+/* =====================================================================
+   5. CATEGORÍAS Y DATOS DE LA TIENDA
+   ===================================================================== */
+function dibujarListaCategorias() {
+  $('#lista-cat').innerHTML = datos.categorias.map((c, i) => {
+    const n = datos.productos.filter(p => p.categoria === c).length;
+    return `<li>
+      <label class="sr-only" for="cat-${i}">Nombre de categoría</label>
+      <input id="cat-${i}" value="${esc(c)}" data-indice="${i}" maxlength="30">
+      <small>${n} prod.</small>
+      <button type="button" class="btn-icono" data-borrar-cat="${i}" aria-label="Eliminar ${esc(c)}">×</button>
+    </li>`;
+  }).join('') || '<li class="texto-ayuda">No hay categorías todavía.</li>';
+}
+async function cambiarCategorias(data, mensaje) {
+  await cambiar('categorias', data, mensaje);
+  if ($('#dlg-categorias').open) dibujarListaCategorias();
+}
+$('#lista-cat').addEventListener('change', e => {
+  const i = e.target.dataset.indice;
+  if (i === undefined) return;
+  const de = datos.categorias[i], a = e.target.value.trim();
+  if (!a || a === de) { dibujarListaCategorias(); return; }
+  if (datos.categorias.some((c, j) => j != i && normalizar(c) === normalizar(a))) { mostrarAviso('Ya existe una categoría con ese nombre', true); dibujarListaCategorias(); return; }
+  if (filtroCategoria === de) filtroCategoria = a;
+  cambiarCategorias({ renombrar: { de, a } }, 'Categoría actualizada ✓');
+});
+$('#lista-cat').addEventListener('click', async e => {
+  const b = e.target.closest('[data-borrar-cat]');
+  if (!b) return;
+  const cat = datos.categorias[b.dataset.borrarCat];
+  const n = datos.productos.filter(p => p.categoria === cat).length;
+  const ok = await pedirConfirmacion({ titulo: `¿Eliminar “${cat}”?`, texto: n ? `Tiene ${n} producto(s). No se borrarán: quedarán como “Sin categoría”.` : 'Esta categoría no tiene productos.' });
+  if (ok) cambiarCategorias({ borrar: cat }, 'Categoría eliminada');
+});
+$('#form-nueva-cat').addEventListener('submit', e => {
+  e.preventDefault();
+  const n = $('#input-nueva-cat').value.trim();
+  if (!n) return;
+  if (datos.categorias.some(c => normalizar(c) === normalizar(n))) { mostrarAviso('Esa categoría ya existe', true); return; }
+  $('#input-nueva-cat').value = '';
+  cambiarCategorias({ agregar: n }, 'Categoría agregada ✓');
+});
+
+// "9 1234 5678", "+56912345678", "12345678" -> "56912345678". Vacío -> "". Inválido -> null.
+function normalizarWhatsApp(t) {
+  let d = String(t || '').replace(/\D/g, '');
+  if (!d) return '';
+  if (d.startsWith('56') && d.length > 9) d = d.slice(2);
+  if (d.length === 8) d = '9' + d;
+  return d.length === 9 && d.startsWith('9') ? '56' + d : null;
+}
+function abrirDatos() {
+  $('#input-nombre').value = datos.tienda;
+  $('#input-wsp').value = datos.whatsapp ? whatsappLegible(datos.whatsapp).replace('+56 ', '') : '';
+  $('#datos-error').hidden = true;
+  $('#dlg-datos').showModal();
+}
+$('#form-datos').addEventListener('submit', async e => {
+  e.preventDefault();
+  const whatsapp = normalizarWhatsApp($('#input-wsp').value);
+  if (whatsapp === null) {
+    $('#datos-error').textContent = 'Revisa el número: debe ser un celular de 9 dígitos, como 9 1234 5678.';
+    $('#datos-error').hidden = false; return;
+  }
+  $('#dlg-datos').close();
+  cambiar('guardarConfig', { tienda: $('#input-nombre').value.trim(), whatsapp }, 'Datos guardados ✓');
+});
+
+/* =====================================================================
+   6. EXPORTAR A EXCEL (CSV con ";" para Excel en español)
+   ===================================================================== */
+function exportarCSV() {
+  const celda = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const filas = [['Nombre', 'Categoría', 'Descripción', 'Costo (CLP)', 'Precio de venta (CLP)', 'Ganancia (CLP)', 'Margen %', 'Estado', 'Vendidos']];
+  datos.productos.forEach(p => {
+    const { ganancia, margen } = calcularGanancia(p);
+    filas.push([p.nombre, p.categoria || 'Sin categoría', p.descripcion || '', p.costo, p.precio, ganancia, margen.toFixed(1).replace('.', ','), p.disponible ? 'Disponible' : 'Agotado', p.vendidos || 0]);
+  });
+  const blob = new Blob(['﻿' + filas.map(f => f.map(celda).join(';')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `catalogo-cavalieri-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  mostrarAviso('Archivo descargado ✓');
+}
+
+/* =====================================================================
+   7. CONECTAR BOTONES
+   ===================================================================== */
+$('#btn-agregar').addEventListener('click', () => abrirFormulario());
+$('#btn-exportar').addEventListener('click', exportarCSV);
+$('#btn-datos').addEventListener('click', abrirDatos);
+document.addEventListener('click', e => { if (e.target.closest('[data-abrir-datos]')) abrirDatos(); });
+
+$('#buscar').addEventListener('input', e => {
+  textoBusqueda = e.target.value;
+  $('#btn-limpiar-busqueda').hidden = !textoBusqueda;
+  dibujarProductos();
+});
+$('#btn-limpiar-busqueda').addEventListener('click', () => {
+  textoBusqueda = ''; $('#buscar').value = ''; $('#btn-limpiar-busqueda').hidden = true; dibujarProductos();
+});
+$('#chips').addEventListener('click', e => {
+  if (e.target.closest('#btn-editar-cat')) { dibujarListaCategorias(); $('#dlg-categorias').showModal(); return; }
+  const chip = e.target.closest('[data-cat]');
+  if (!chip) return;
+  filtroCategoria = chip.dataset.cat; dibujarChips(); dibujarProductos();
+});
+$('#grilla').addEventListener('click', e => {
+  const b = e.target.closest('[data-accion]');
+  if (!b) return;
+  const { accion, id } = b.dataset;
+  if (accion === 'editar') abrirFormulario(id);
+  if (accion === 'estado') cambiarEstado(id);
+  if (accion === 'mas') vender(id, 1);
+  if (accion === 'menos') vender(id, -1);
+  if (accion === 'agregar') abrirFormulario();
+  if (accion === 'limpiar') { textoBusqueda = ''; $('#buscar').value = ''; filtroCategoria = 'Todas'; dibujarChips(); dibujarProductos(); }
+});
+
+$('#form-producto').addEventListener('submit', guardarProducto);
+$('#btn-eliminar').addEventListener('click', eliminarProducto);
+$('#f-costo').addEventListener('input', formatearMientrasEscribe);
+$('#f-precio').addEventListener('input', formatearMientrasEscribe);
+$('#f-categoria').addEventListener('change', e => {
+  const nueva = e.target.value === '__nueva__';
+  $('#campo-nueva-cat').hidden = !nueva;
+  if (nueva) $('#f-nueva-cat').focus();
+});
+$('#f-archivo').addEventListener('change', async e => {
+  const archivo = e.target.files[0];
+  if (!archivo) return;
+  try { fotoTemporal = await reducirImagen(archivo); $('#f-url').value = ''; dibujarFotoPrevia(); }
+  catch (err) { mostrarAviso('No se pudo leer esa foto. Prueba con otra.', true); }
+});
+$('#f-url').addEventListener('input', e => { fotoTemporal = e.target.value.trim(); dibujarFotoPrevia(); });
+$('#btn-quitar-foto').addEventListener('click', () => { fotoTemporal = ''; $('#f-url').value = ''; $('#f-archivo').value = ''; dibujarFotoPrevia(); });
+
+document.querySelectorAll('dialog.ventana').forEach(dlg => dlg.addEventListener('click', e => {
+  if (e.target.closest('[data-cerrar]')) dlg.close();
+  else if (e.target === dlg && dlg.id !== 'dlg-confirmar') dlg.close();
+}));
+
+/* =====================================================================
+   8. INICIO
+   ===================================================================== */
+if (!((window.CONFIG && CONFIG.API) || lsGet('cav-api'))) pedirConexion();
+if (!clave) pedirClave(); else refrescar();
+setInterval(() => { if (document.visibilityState === 'visible' && !document.querySelector('dialog[open]')) refrescar(); }, 45000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refrescar(); });
+</script>
+</body>
+</html>
